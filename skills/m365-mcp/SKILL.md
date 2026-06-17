@@ -5,7 +5,7 @@ description: This skill should be used when the user asks to "read email", "chec
 
 # m365-mcp
 
-Microsoft 365 MCP server providing 24 tools across Mail, Calendar, Teams, OneDrive, and SharePoint. All access is via Microsoft Graph API using delegated permissions authenticated as Ray.Chao@acer-ast.com.
+Microsoft 365 MCP server providing 24 tools across Mail, Calendar, Teams, OneDrive, and SharePoint. All access is via Microsoft Graph API using delegated permissions.
 
 **Tool prefix**: `mcp__m365-mcp__`
 
@@ -64,7 +64,7 @@ Microsoft 365 MCP server providing 24 tools across Mail, Calendar, Teams, OneDri
 
 - Do NOT ask the user to type passwords or tokens in the chat.
 - Token is cached at `~/.m365-mcp-token.json` — never read or log this file's content.
-- `admin.rc@acer-ast.com` is for admin consent only, not daily use. Always ensure tools are invoked as Ray.Chao@acer-ast.com.
+- The admin account (used for admin consent) is separate from the daily-use account. Always ensure tools are invoked as the daily-use account after any admin consent flow.
 - These tools are used to **verify MCP functionality**, not to handle actual company business. Do not proactively manage company communications.
 
 ## Common Patterns
@@ -100,6 +100,6 @@ send_chat_message(chatId: "<id>", message: "...")
 
 ## Authentication
 
-Run `node auth.js` once in the repo directory to authenticate via device-code flow. Token is cached for future sessions. Re-run after any admin consent flow to ensure daily-use account (Ray.Chao@acer-ast.com) is active.
+Run `node auth.js` once in the repo directory to authenticate via device-code flow. Token is cached for future sessions. Re-run after any admin consent flow to ensure the daily-use account is active.
 
 If tools return auth errors, the token may have expired — re-run `node auth.js`.
