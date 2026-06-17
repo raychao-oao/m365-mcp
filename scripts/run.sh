@@ -13,6 +13,14 @@ if [ ! -d "${CLAUDE_PLUGIN_ROOT}/node_modules" ]; then
     bash "${CLAUDE_PLUGIN_ROOT}/scripts/install.sh"
 fi
 
+# Load .env for tenant/client IDs
+if [ -f "${CLAUDE_PLUGIN_ROOT}/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "${CLAUDE_PLUGIN_ROOT}/.env"
+    set +a
+fi
+
 export M365_MCP_TOKEN_CACHE="${HOME}/.m365-mcp-token.json"
 
 exec node "${CLAUDE_PLUGIN_ROOT}/index.js" "$@"

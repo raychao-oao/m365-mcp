@@ -3,9 +3,15 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-const TENANT_ID = '3a4da202-0099-478c-929f-caa39aa19edb';
-const CLIENT_ID = '7b6a5a61-c73d-47c9-8664-2a2cf0133c5b';
-const TOKEN_CACHE_PATH = path.join(os.homedir(), '.outlook-mcp-token.json');
+const TENANT_ID = process.env.M365_MCP_TENANT_ID;
+const CLIENT_ID = process.env.M365_MCP_CLIENT_ID;
+if (!TENANT_ID || !CLIENT_ID) {
+  console.error('ERROR: M365_MCP_TENANT_ID and M365_MCP_CLIENT_ID must be set');
+  process.exit(1);
+}
+const TOKEN_CACHE_PATH =
+  process.env.M365_MCP_TOKEN_CACHE ||
+  path.join(os.homedir(), '.m365-mcp-token.json');
 const SCOPES = [
   'https://graph.microsoft.com/Mail.Read',
   'https://graph.microsoft.com/Mail.ReadWrite',

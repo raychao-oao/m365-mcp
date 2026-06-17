@@ -7,8 +7,12 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-const TENANT_ID = '3a4da202-0099-478c-929f-caa39aa19edb';
-const CLIENT_ID = '7b6a5a61-c73d-47c9-8664-2a2cf0133c5b';
+const TENANT_ID = process.env.M365_MCP_TENANT_ID;
+const CLIENT_ID = process.env.M365_MCP_CLIENT_ID;
+if (!TENANT_ID || !CLIENT_ID) {
+  process.stderr.write('[m365-mcp] ERROR: M365_MCP_TENANT_ID and M365_MCP_CLIENT_ID must be set\n');
+  process.exit(1);
+}
 // Allow override via env so Claude Code subprocess always finds the right path
 const TOKEN_CACHE_PATH =
   process.env.M365_MCP_TOKEN_CACHE ||
