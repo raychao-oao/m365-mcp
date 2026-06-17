@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "m365-mcp": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/run.sh",
+      "args": []
+    }
+  }
+}

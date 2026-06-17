@@ -1,0 +1,13 @@
+{
+  "name": "m365-mcp",
+  "version": "0.1.0",
+  "description": "Microsoft 365 MCP server — access Mail, Calendar, Teams, OneDrive, and SharePoint via Microsoft Graph API without putting credentials into LLM context.",
+  "author": {
+    "name": "raychao-oao",
+    "url": "https://github.com/raychao-oao"
+  },
+  "homepage": "https://github.com/raychao-oao/m365-mcp",
+  "repository": "https://github.com/raychao-oao/m365-mcp",
+  "license": "MIT",
+  "keywords": ["microsoft365", "outlook", "teams", "onedrive", "sharepoint", "graph", "mcp"]
+}
