@@ -1,0 +1,20 @@
+{
+  "name": "m365-mcp-dev",
+  "owner": {
+    "name": "raychao-oao",
+    "email": "ray.chao@oao.tw"
+  },
+  "plugins": [
+    {
+      "name": "m365-mcp-dev",
+      "description": "[DEV] Microsoft 365 MCP server - local development build",
+      "version": "0.1.0-dev",
+      "author": {
+        "name": "raychao-oao",
+        "url": "https://github.com/raychao-oao/m365-mcp"
+      },
+      "source": "./",
+      "category": "tools"
+    }
+  ]
+}
