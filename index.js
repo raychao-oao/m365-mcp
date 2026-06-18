@@ -218,8 +218,8 @@ server.registerTool('update_draft', {
   if (body !== undefined)    patch.body = { contentType: bodyType || 'text', content: body };
   if (to !== undefined)      patch.toRecipients = to.map(addr => ({ emailAddress: { address: addr } }));
   if (cc !== undefined)      patch.ccRecipients = cc.map(addr => ({ emailAddress: { address: addr } }));
-  await graph(token).api(`/me/messages/${id}`).patch(patch);
-  return { content: [{ type: 'text', text: JSON.stringify({ id, updated: true }, null, 2) }] };
+  const result = await graph(token).api(`/me/messages/${id}`).patch(patch);
+  return { content: [{ type: 'text', text: JSON.stringify({ id: result.id, updated: true }, null, 2) }] };
 });
 
 server.registerTool('send_draft', {
