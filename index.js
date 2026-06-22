@@ -164,14 +164,17 @@ server.registerTool('get_attachment', {
   },
 }, async ({ messageId, attachmentId }) => {
   const token = await getAccessToken();
-  // Expand item for itemAttachment (embedded emails)
-  const a = await graph(token).api(`/me/messages/${messageId}/attachments/${attachmentId}`).expand('item').get();
+  // First fetch without expand to detect attachment type
+  const a = await graph(token).api(`/me/messages/${messageId}/attachments/${attachmentId}`).get();
   // Handle item attachments (embedded emails) — no contentBytes
   if (a['@odata.type'] === '#microsoft.graph.itemAttachment') {
+    const expanded = await graph(token).api(
+      `/me/messages/${messageId}/attachments/${attachmentId}?$expand=microsoft.graph.itemAttachment/item`
+    ).get();
     return { content: [{ type: 'text', text: JSON.stringify({
       attachmentType: 'itemAttachment',
-      name: a.name,
-      item: a.item,
+      name: expanded.name,
+      item: expanded.item,
     }, null, 2) }] };
   }
   const raw = a.contentBytes;
