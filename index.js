@@ -157,7 +157,7 @@ server.registerTool('list_attachments', {
 });
 
 server.registerTool('get_attachment', {
-  description: 'Get the content of an email attachment. Text-based files are returned as UTF-8 text; others as base64.',
+  description: 'Get the content of an email attachment. Text-based files are returned as UTF-8 text; binary files are returned as base64 string in the "content" field with "encoding": "base64".',
   inputSchema: {
     messageId:    z.string().describe('Message ID'),
     attachmentId: z.string().describe('Attachment ID from list_attachments'),
@@ -177,7 +177,8 @@ server.registerTool('get_attachment', {
   }
   return { content: [{ type: 'text', text: JSON.stringify({
     name: a.name, contentType: a.contentType, size: a.size,
-    contentBytes: a.contentBytes,
+    encoding: 'base64',
+    content: a.contentBytes,
   }, null, 2) }] };
 });
 
@@ -198,6 +199,21 @@ server.registerTool('create_draft', {
     toRecipients: to.map(addr => ({ emailAddress: { address: addr } })),
     ccRecipients: cc.map(addr => ({ emailAddress: { address: addr } })),
   });
+  return { content: [{ type: 'text', text: JSON.stringify({ id: draft.id, subject: draft.subject, webLink: draft.webLink }, null, 2) }] };
+});
+
+server.registerTool('create_reply_draft', {
+  description: 'Create a reply draft to an existing message. Preserves reply headers and quoted body.',
+  inputSchema: {
+    id:      z.string().describe('Message ID to reply to'),
+    body:     z.string().optional().describe('Reply body text (plain text). To use HTML, call update_draft after.'),
+    replyAll: z.boolean().optional().describe('Reply to all recipients. Default: false'),
+  },
+}, async ({ id, body, replyAll = false }) => {
+  const token = await getAccessToken();
+  const endpoint = replyAll ? `/me/messages/${id}/createReplyAll` : `/me/messages/${id}/createReply`;
+  const payload = body !== undefined ? { message: {}, comment: body } : {};
+  const draft = await graph(token).api(endpoint).post(payload);
   return { content: [{ type: 'text', text: JSON.stringify({ id: draft.id, subject: draft.subject, webLink: draft.webLink }, null, 2) }] };
 });
 

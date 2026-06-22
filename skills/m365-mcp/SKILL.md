@@ -18,8 +18,9 @@ Microsoft 365 MCP server providing 24 tools across Mail, Calendar, Teams, OneDri
 | `list_messages` | List messages in a folder (default: inbox). Supports `search` and `filter` params. |
 | `get_message` | Get full message body by ID. |
 | `list_attachments` | List attachments of a message. Use param `id` (not `messageId`). |
-| `get_attachment` | Get attachment content. Text types decoded to UTF-8; images/binary returned as base64. |
+| `get_attachment` | Get attachment content. Text types decoded to UTF-8; binary files returned as `{ encoding: "base64", content: "..." }` — decode with `Buffer.from(content, 'base64')`. |
 | `create_draft` | Create a draft email. |
+| `create_reply_draft` | Create a reply draft to an existing message. Supports reply-all. |
 | `update_draft` | Update an existing draft. |
 | `send_draft` | Send a draft. ⚠️ **Fails** — `Mail.Send` permission not granted. Users must send manually from Outlook. |
 | `move_message` | Move a message to another folder. |
