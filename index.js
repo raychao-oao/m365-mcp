@@ -171,14 +171,19 @@ server.registerTool('get_attachment', {
     a.contentType.includes('xml') ||
     a.contentType.includes('csv')
   );
-  if (isText && a.contentBytes) {
-    const text = Buffer.from(a.contentBytes, 'base64').toString('utf8');
+  const raw = a.contentBytes;
+  // Normalize to true base64 string regardless of what the SDK returns
+  const b64 = Buffer.isBuffer(raw)
+    ? raw.toString('base64')
+    : Buffer.from(raw, 'binary').toString('base64');
+  if (isText && raw) {
+    const text = Buffer.from(b64, 'base64').toString('utf8');
     return { content: [{ type: 'text', text }] };
   }
   return { content: [{ type: 'text', text: JSON.stringify({
     name: a.name, contentType: a.contentType, size: a.size,
     encoding: 'base64',
-    content: a.contentBytes,
+    content: b64,
   }, null, 2) }] };
 });
 
