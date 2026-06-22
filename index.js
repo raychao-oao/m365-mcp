@@ -164,19 +164,31 @@ server.registerTool('get_attachment', {
   },
 }, async ({ messageId, attachmentId }) => {
   const token = await getAccessToken();
-  const a = await graph(token).api(`/me/messages/${messageId}/attachments/${attachmentId}`).get();
+  // Expand item for itemAttachment (embedded emails)
+  const a = await graph(token).api(`/me/messages/${messageId}/attachments/${attachmentId}`).expand('item').get();
+  // Handle item attachments (embedded emails) — no contentBytes
+  if (a['@odata.type'] === '#microsoft.graph.itemAttachment') {
+    return { content: [{ type: 'text', text: JSON.stringify({
+      attachmentType: 'itemAttachment',
+      name: a.name,
+      item: a.item,
+    }, null, 2) }] };
+  }
+  const raw = a.contentBytes;
+  if (!raw) {
+    return { content: [{ type: 'text', text: JSON.stringify({ name: a.name, contentType: a.contentType, size: a.size, error: 'no content' }, null, 2) }] };
+  }
   const isText = a.contentType && (
     a.contentType.startsWith('text/') ||
     a.contentType.includes('json') ||
     a.contentType.includes('xml') ||
     a.contentType.includes('csv')
   );
-  const raw = a.contentBytes;
   // Normalize to true base64 string regardless of what the SDK returns
   const b64 = Buffer.isBuffer(raw)
     ? raw.toString('base64')
     : Buffer.from(raw, 'binary').toString('base64');
-  if (isText && raw) {
+  if (isText) {
     const text = Buffer.from(b64, 'base64').toString('utf8');
     return { content: [{ type: 'text', text }] };
   }
