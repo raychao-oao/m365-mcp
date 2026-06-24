@@ -5,7 +5,7 @@ description: This skill should be used when the user asks to "read email", "chec
 
 # m365-mcp
 
-Microsoft 365 MCP server providing 24 tools across Mail, Calendar, Teams, OneDrive, and SharePoint. All access is via Microsoft Graph API using delegated permissions.
+Microsoft 365 MCP server providing 33 tools across Mail, Calendar, Teams, OneDrive, and SharePoint. All access is via Microsoft Graph API using delegated permissions.
 
 **Tool prefix**: `mcp__m365-mcp__`
 
@@ -24,8 +24,14 @@ Microsoft 365 MCP server providing 24 tools across Mail, Calendar, Teams, OneDri
 | `update_draft` | Update an existing draft. |
 | `send_draft` | Send a draft. ⚠️ **Fails** — `Mail.Send` permission not granted. Users must send manually from Outlook. |
 | `move_message` | Move a message to another folder. |
+| `mark_message` | Mark as read/unread or set/clear follow-up flag. |
+| `forward_message` | Forward a message to recipients with optional comment. |
 | `list_folders` | List mail folders. |
 | `create_folder` | Create a new mail folder. |
+| `list_categories` | List all Outlook categories (master category list). |
+| `assign_categories` | Assign categories to a message by display name. |
+| `get_out_of_office` | Get current automatic replies settings. |
+| `set_out_of_office` | Enable, schedule, or disable automatic replies. |
 
 ### Calendar
 
@@ -43,6 +49,9 @@ Microsoft 365 MCP server providing 24 tools across Mail, Calendar, Teams, OneDri
 | `list_channel_messages` | List messages in a team channel. |
 | `list_chats` | List personal chats. |
 | `list_chat_messages` | List messages in a chat. |
+| `get_chat_message` | Get a single chat message with full details including attachments. |
+| `get_chat_message_images` | Get hosted inline images from a Teams chat message (returns base64). |
+| `get_channel_message` | Get a single channel message with full details including attachments. |
 | `send_chat_message` | Send a message to a chat. |
 
 ### OneDrive
@@ -97,6 +106,15 @@ list_events(startDateTime: "2026-06-17T00:00:00", endDateTime: "2026-06-17T23:59
 ```
 list_chats()  # find chat ID
 send_chat_message(chatId: "<id>", message: "...")
+```
+
+**Read a Teams message with attachments:**
+```
+list_chats() or list_teams()/list_channels()  # find IDs
+list_chat_messages(chatId: "<id>")            # find message ID
+get_chat_message(chatId: "<id>", messageId: "<id>")  # get attachments[]
+# Each attachment has: id, name, contentType, contentUrl
+# For file references (contentType: "reference"), use SharePoint tools to download
 ```
 
 ## Authentication

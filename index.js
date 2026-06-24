@@ -303,6 +303,91 @@ server.registerTool('create_folder', {
   return { content: [{ type: 'text', text: JSON.stringify({ id: folder.id, name: folder.displayName }, null, 2) }] };
 });
 
+server.registerTool('mark_message', {
+  description: 'Mark a message as read/unread or set/clear a follow-up flag.',
+  inputSchema: {
+    id:         z.string().describe('Message ID'),
+    isRead:     z.boolean().optional().describe('true = mark as read, false = mark as unread'),
+    flagStatus: z.enum(['notFlagged', 'flagged', 'complete']).optional().describe('Follow-up flag status'),
+  },
+}, async ({ id, isRead, flagStatus }) => {
+  const token = await getAccessToken();
+  const patch = {};
+  if (isRead !== undefined) patch.isRead = isRead;
+  if (flagStatus !== undefined) patch.flag = { flagStatus };
+  await graph(token).api(`/me/messages/${id}`).patch(patch);
+  return { content: [{ type: 'text', text: JSON.stringify({ id, updated: true }, null, 2) }] };
+});
+
+server.registerTool('forward_message', {
+  description: 'Forward an existing email to one or more recipients.',
+  inputSchema: {
+    id:      z.string().describe('Message ID to forward'),
+    to:      z.array(z.string()).describe('Recipient email addresses'),
+    comment: z.string().optional().describe('Optional comment to prepend to the forwarded message'),
+  },
+}, async ({ id, to, comment = '' }) => {
+  const token = await getAccessToken();
+  await graph(token).api(`/me/messages/${id}/forward`).post({
+    comment,
+    toRecipients: to.map(addr => ({ emailAddress: { address: addr } })),
+  });
+  return { content: [{ type: 'text', text: JSON.stringify({ forwarded: true }, null, 2) }] };
+});
+
+server.registerTool('list_categories', {
+  description: 'List all Outlook categories (master category list).',
+  inputSchema: {},
+}, async () => {
+  const token = await getAccessToken();
+  const res = await graph(token).api('/me/outlook/masterCategories').get();
+  const cats = res.value.map(c => ({ id: c.id, displayName: c.displayName, color: c.color }));
+  return { content: [{ type: 'text', text: JSON.stringify(cats, null, 2) }] };
+});
+
+server.registerTool('assign_categories', {
+  description: 'Assign Outlook categories to a message. Pass category display names (not IDs).',
+  inputSchema: {
+    id:         z.string().describe('Message ID'),
+    categories: z.array(z.string()).describe('Category display names to assign (e.g. ["Red Category", "Project Alpha"])'),
+  },
+}, async ({ id, categories }) => {
+  const token = await getAccessToken();
+  await graph(token).api(`/me/messages/${id}`).patch({ categories });
+  return { content: [{ type: 'text', text: JSON.stringify({ id, categories, updated: true }, null, 2) }] };
+});
+
+server.registerTool('get_out_of_office', {
+  description: 'Get the current automatic replies (out-of-office) settings.',
+  inputSchema: {},
+}, async () => {
+  const token = await getAccessToken();
+  const res = await graph(token).api('/me/mailboxSettings').select('automaticRepliesSetting').get();
+  return { content: [{ type: 'text', text: JSON.stringify(res.automaticRepliesSetting, null, 2) }] };
+});
+
+server.registerTool('set_out_of_office', {
+  description: 'Enable, schedule, or disable automatic replies (out-of-office).',
+  inputSchema: {
+    status:           z.enum(['disabled', 'enabled', 'scheduled']).describe('enabled = on now, scheduled = use start/end times, disabled = off'),
+    internalMessage:  z.string().optional().describe('Reply message for internal senders (HTML supported)'),
+    externalMessage:  z.string().optional().describe('Reply message for external senders (HTML supported)'),
+    externalAudience: z.enum(['none', 'contactsOnly', 'all']).optional().describe('Who receives the external reply. Default: all'),
+    startDateTime:    z.string().optional().describe('ISO 8601 start time (required for scheduled, e.g. 2026-07-01T09:00:00)'),
+    endDateTime:      z.string().optional().describe('ISO 8601 end time (required for scheduled)'),
+    timeZone:         z.string().optional().describe('Time zone for start/end (default: Asia/Taipei)'),
+  },
+}, async ({ status, internalMessage, externalMessage, externalAudience = 'all', startDateTime, endDateTime, timeZone = 'Asia/Taipei' }) => {
+  const token = await getAccessToken();
+  const setting = { status, externalAudience };
+  if (internalMessage) setting.internalReplyMessage = internalMessage;
+  if (externalMessage) setting.externalReplyMessage = externalMessage;
+  if (startDateTime) setting.scheduledStartDateTime = { dateTime: startDateTime, timeZone };
+  if (endDateTime)   setting.scheduledEndDateTime   = { dateTime: endDateTime,   timeZone };
+  await graph(token).api('/me/mailboxSettings').patch({ automaticRepliesSetting: setting });
+  return { content: [{ type: 'text', text: JSON.stringify({ updated: true, status }, null, 2) }] };
+});
+
 // ── Calendar ─────────────────────────────────────────────────────────────────
 
 server.registerTool('list_events', {
@@ -458,6 +543,84 @@ server.registerTool('send_chat_message', {
     body: { contentType: 'text', content: message },
   });
   return { content: [{ type: 'text', text: JSON.stringify({ id: result.id, createdAt: result.createdDateTime, sent: true }, null, 2) }] };
+});
+
+server.registerTool('get_chat_message', {
+  description: 'Get a single Teams chat message with full details including attachments.',
+  inputSchema: {
+    chatId:    z.string().describe('Chat ID from list_chats'),
+    messageId: z.string().describe('Message ID from list_chat_messages'),
+  },
+}, async ({ chatId, messageId }) => {
+  const token = await getAccessToken();
+  const m = await graph(token).api(`/chats/${chatId}/messages/${messageId}`).get();
+  const result = {
+    id: m.id,
+    from: m.from?.user?.displayName,
+    createdAt: m.createdDateTime,
+    body: m.body?.content?.replace(/<[^>]+>/g, '').trim(),
+    attachments: (m.attachments || []).map(a => ({
+      id: a.id,
+      name: a.name,
+      contentType: a.contentType,
+      contentUrl: a.contentUrl,
+    })),
+  };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+});
+
+server.registerTool('get_channel_message', {
+  description: 'Get a single Teams channel message with full details including attachments.',
+  inputSchema: {
+    teamId:    z.string().describe('Team ID from list_teams'),
+    channelId: z.string().describe('Channel ID from list_channels'),
+    messageId: z.string().describe('Message ID from list_channel_messages'),
+  },
+}, async ({ teamId, channelId, messageId }) => {
+  const token = await getAccessToken();
+  const m = await graph(token).api(`/teams/${teamId}/channels/${channelId}/messages/${messageId}`).get();
+  const result = {
+    id: m.id,
+    from: m.from?.user?.displayName,
+    createdAt: m.createdDateTime,
+    body: m.body?.content?.replace(/<[^>]+>/g, '').trim(),
+    attachments: (m.attachments || []).map(a => ({
+      id: a.id,
+      name: a.name,
+      contentType: a.contentType,
+      contentUrl: a.contentUrl,
+    })),
+  };
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+});
+
+server.registerTool('get_chat_message_images', {
+  description: 'Get hosted images (inline photos) from a Teams chat message.',
+  inputSchema: {
+    chatId:    z.string().describe('Chat ID from list_chats'),
+    messageId: z.string().describe('Message ID from list_chat_messages'),
+  },
+}, async ({ chatId, messageId }) => {
+  const token = await getAccessToken();
+  const res = await graph(token).api(`/chats/${chatId}/messages/${messageId}/hostedContents`).get();
+  const images = (res.value || []).map(c => ({
+    id: c.id,
+    contentType: c.contentBytes ? 'image (base64 available)' : c['@microsoft.graph.temporaryId'],
+  }));
+  if (images.length === 0) {
+    return { content: [{ type: 'text', text: 'No hosted images found in this message.' }] };
+  }
+  // Return first image as base64 if available
+  const full = await graph(token).api(`/chats/${chatId}/messages/${messageId}/hostedContents/${res.value[0].id}/$value`).getStream();
+  const chunks = [];
+  for await (const chunk of full) chunks.push(chunk);
+  const b64 = Buffer.concat(chunks).toString('base64');
+  return {
+    content: [
+      { type: 'text', text: `Found ${images.length} hosted image(s). Returning first as base64.` },
+      { type: 'image', data: b64, mimeType: 'image/jpeg' },
+    ],
+  };
 });
 
 // ── OneDrive ──────────────────────────────────────────────────────────────────
